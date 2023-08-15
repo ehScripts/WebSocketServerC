@@ -400,6 +400,8 @@ enum header_states
   , h_connection_keep_alive
   , h_connection_close
   , h_connection_upgrade
+
+  , h_sec_websocket_key
   };
 
 enum http_host_state
@@ -942,8 +944,8 @@ reexecute:
           goto error;
         }
 
-        parser->method = (enum http_method) 0;
-        parser->index = 1;
+        parser->method = /*(enum http_method)*/ 0;
+        parser->index = 2;
         switch (ch) {
           case 'A': parser->method = HTTP_ACL; break;
           case 'B': parser->method = HTTP_BIND; break;
@@ -963,6 +965,7 @@ reexecute:
           case 'T': parser->method = HTTP_TRACE; break;
           case 'U': parser->method = HTTP_UNLOCK; /* or UNSUBSCRIBE, UNBIND, UNLINK */ break;
           default:
+            parser->method = HTTP_INVALID_METHOD;
             SET_ERRNO(HPE_INVALID_METHOD);
             goto error;
         }
@@ -1234,6 +1237,8 @@ reexecute:
         parser->index = 0;
         UPDATE_STATE(s_header_field);
 
+        printf("HEADER RECEIVED\n");
+
         switch (c) {
           case 'c':
             parser->header_state = h_C;
@@ -1249,6 +1254,10 @@ reexecute:
 
           case 'u':
             parser->header_state = h_matching_upgrade;
+            break;
+          
+          case 's':
+            printf("the the socket? %c\n", c);
             break;
 
           default:
@@ -1472,7 +1481,7 @@ reexecute:
               //printf("CLOSE\n");
               parser->header_state = h_matching_connection_close;
             } else if (c == 'u') {
-              //printf("UPGRADE\n");
+              printf("UPGRADE\n");
               parser->header_state = h_matching_connection_upgrade;
               parser->upgrade = 1;
             } else {
@@ -1861,7 +1870,7 @@ reexecute:
               break;
 
             case 2:
-              //parser->upgrade = 1;
+              parser->upgrade = 1;
 
               /* fall through */
             case 1:

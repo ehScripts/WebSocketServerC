@@ -205,6 +205,7 @@ enum http_status
   XX(32, UNLINK,      UNLINK)       \
   /* icecast */                     \
   XX(33, SOURCE,      SOURCE)       \
+  XX(34, INVALID_METHOD, INVALID_METHOD) \
 
 enum http_method
   {
@@ -326,6 +327,7 @@ struct http_parser {
    */
   unsigned int upgrade;
   unsigned int upgradeTo;
+  char sec_websocket_key[24];
 
   /** PUBLIC **/
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
