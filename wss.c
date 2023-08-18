@@ -111,7 +111,7 @@ void wss_listen(WebSocketServer wss)
             };
 
             HTTPRequest parsed = parseHTTP(buf);
-            
+
             printf("UPGRADE: %s\n", parsed.upgrade);
 
             if (!strcmp(parsed.upgrade, "websocket"))
@@ -119,19 +119,30 @@ void wss_listen(WebSocketServer wss)
                 char concatString[128];
                 strcpy(concatString, parsed.sec_websocket_key);
                 strcat(concatString, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+
                 char sha1Result[128];
                 SHA1(&sha1Result, concatString, strlen(concatString));
+
                 char base64Result[128];
                 Base64encode(&base64Result, sha1Result, strlen(sha1Result));
-                char switchingProtocols[256] = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ";
-                strcat(switchingProtocols, base64Result);
-                strcat(switchingProtocols, "\r\nSec-WebSocket-Protocol: chat");
-                printf("Switching protocols...\n");
-                send(connfd, switchingProtocols, strlen(switchingProtocols), 0);
+
+                char switchingProtocols[256];
+                sprintf(switchingProtocols, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", base64Result);
+
+                printf("Switching protocols... [Accept: %s]\n", base64Result);
+                int bytes_sent = send(connfd, switchingProtocols, strlen(switchingProtocols), 0);
+
+                if (bytes_sent == strlen(switchingProtocols))
+                {
+                    printf("%d bytes sent\n", bytes_sent);
+                }
+                else
+                {
+                    perror("Error sending response");
+                }
             }
             else
             {
-                printf("Non-WebSocket HTTP request recieved\n");
                 char response[] = "HTTP/1.1 426 Upgrade Required\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 16\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\nUpgrade Required";
                 int bytes_sent = send(connfd, response, sizeof(response), 0);
                 printf("%d\n", bytes_sent);
